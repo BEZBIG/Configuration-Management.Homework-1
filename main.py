@@ -51,6 +51,17 @@ class EmulatorShell:
             print(f"Error: directory {path} не does not exist")  # Выводим ошибку, если директория не найдена
 
 
+    #Удаление файла или директории
+    def rm(self, path):
+        target_path = os.path.join(self.current_dir, path)  # Формируем полный путь для удаления
+        if os.path.isfile(target_path):  # Проверяем, является ли это файлом
+            os.remove(target_path)  # Удаляем файл
+        elif os.path.isdir(target_path):  # Проверяем, является ли это директорией
+            shutil.rmtree(target_path)  # Удаляем директорию и всё её содержимое
+        else:
+            print(f"Error: file or directory {path} not found")  # Сообщаем, если файл или директория не найдены
+
+
 
 
 
