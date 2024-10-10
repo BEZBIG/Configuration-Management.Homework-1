@@ -42,6 +42,15 @@ class EmulatorShell:
         except FileNotFoundError:
             print("Error: directory not found")
 
+    # Переход в другую директорию
+    def cd(self, path):
+        new_path = os.path.join(self.current_dir, path)  # Формируем полный путь для перехода
+        if os.path.isdir(new_path):  # Проверяем, является ли путь директорией
+            self.current_dir = new_path  # Обновляем текущую директорию
+        else:
+            print(f"Error: directory {path} не does not exist")  # Выводим ошибку, если директория не найдена
+
+
 
 
 
