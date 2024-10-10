@@ -1,27 +1,39 @@
 import os
-import sys
 import zipfile
 import xml.etree.ElementTree as ET
-from pathlib import Path
+import shutil
 
 #Класс для эмуляции shell
 class EmulatorShell:
     def __init__(self, config_file):
-        self.current_dir = "/" # Текущий каталог
-        self.file_system = {} # Виртуальная файловая система в виде словаря
-        self.hostname = "localhost"  # Имя компьютера по умолчанию
-        self.load_config(config_file)  # Загружаем конфигурационный файл
-        self.load_filesystem()  # Загружаем виртуальную файловую систему из архива
+        # Чтение конфигурационного файла XML
+        tree = ET.parse(config_file)
+        root = tree.getroot()
 
-    # Загружаем конфигурацию из XML-файла
-    def load_config(self, config_file):
-        tree = ET.parse(config_file)  # Парсим XML-файл
-        root = tree.getroot()  # Получаем корневой элемент
-        self.hostname = root.find("hostname").text  # Извлекаем имя компьютера
-        self.fs_path = root.find("filesystem").text  # Извлекаем путь к файловой системе
+        # Получение имени компьютера из конфигурации
+        self.hostname = root.find('hostname').text
 
-    # Загружаем файловую систему из ZIP-архива
-    def load_filesystem(self):
-        with zipfile.ZipFile(self.fs_path, 'r') as zip_ref:  # Открываем ZIP-архив
-            for file in zip_ref.namelist():  # Для каждого файла в архиве
-                self.file_system[file] = zip_ref.read(file)  # Сохраняем содержимое файла в словарь
+        # Получение пути к zip-архиву виртуальной файловой системы
+        self.fs_zip_path = root.find('filesystem').text
+
+        # Временная директория для файловой системы
+        self.temp_files_path = '/tmp/test_files'
+
+        # Текущая директория в файловой системе
+        self.current_dir = self.temp_files_path
+
+        # Распаковка файловой системы
+        self.extract_files()
+
+    def extract_files(self):
+        if os.path.exists(self.temp_files_path):
+            shutil.rmtree(self.temp_files_path)  # Удаляем предыдущие данные, если они существуют
+        os.makedirs(self.temp_files_path)  # Создаем временную директорию
+
+        with zipfile.ZipFile(self.fs_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(self.temp_files_path)  # Распаковка файлов в temp_files_path
+
+
+
+
+
