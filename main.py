@@ -20,3 +20,8 @@ class EmulatorShell:
         self.hostname = root.find("hostname").text  # Извлекаем имя компьютера
         self.fs_path = root.find("filesystem").text  # Извлекаем путь к файловой системе
 
+    # Загружаем файловую систему из ZIP-архива
+    def load_filesystem(self):
+        with zipfile.ZipFile(self.fs_path, 'r') as zip_ref:  # Открываем ZIP-архив
+            for file in zip_ref.namelist():  # Для каждого файла в архиве
+                self.file_system[file] = zip_ref.read(file)  # Сохраняем содержимое файла в словарь
