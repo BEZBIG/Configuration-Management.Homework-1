@@ -1,7 +1,7 @@
 import os
 import zipfile
 import xml.etree.ElementTree as ET
-import shutil
+import shutil # Модуль для операций копирования и удаления файлов и директорий
 
 #Класс для эмуляции shell
 class EmulatorShell:
@@ -25,6 +25,7 @@ class EmulatorShell:
         # Распаковка файловой системы
         self.extract_files()
 
+    # Распаковка zip-архива виртуальной файловой системы во временную директорию.
     def extract_files(self):
         if os.path.exists(self.temp_files_path):
             shutil.rmtree(self.temp_files_path)  # Удаляем предыдущие данные, если они существуют
@@ -32,6 +33,15 @@ class EmulatorShell:
 
         with zipfile.ZipFile(self.fs_zip_path, 'r') as zip_ref:
             zip_ref.extractall(self.temp_files_path)  # Распаковка файлов в temp_files_path
+
+    # Вывод содержимого текущей директории
+    def ls(self):
+        try:
+            for item in os.listdir(self.current_dir): # Получаем список файлов и директорий в текущей директории
+                print(item) # Выводим каждый элемент
+        except FileNotFoundError:
+            print("Error: directory not found")
+
 
 
 
