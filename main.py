@@ -73,8 +73,26 @@ class EmulatorShell:
         else:
             print(f"Ошибка: файл или директория {src} не найдены")  # Сообщаем, если исходный объект не найден
 
+    # Основной цикл эмулятора
+    def run(self):
+        while True:
+            # Формируем приглашение командной строки в формате <hostname>:<текущий путь>$
+            prompt = f'{self.hostname}:{self.current_dir}$ '  # Строка приглашения с именем компьютера и текущей директорией
+            command = input(prompt)  # Получаем ввод пользователя
 
-
-
-
-
+            if command == 'exit':
+                break  # Прерываем цикл, если команда 'exit'
+            elif command.startswith('ls'):
+                self.ls()  # Выполняем команду 'ls'
+            elif command.startswith('cd'):
+                path = command.split(' ')[1] if len(
+                    command.split(' ')) > 1 else '/'  # Получаем аргумент для команды 'cd'
+                self.cd(path)  # Выполняем команду 'cd'
+            elif command.startswith('rm'):
+                path = command.split(' ')[1]  # Получаем аргумент для команды 'rm'
+                self.rm(path)  # Выполняем команду 'rm'
+            elif command.startswith('cp'):
+                src, dest = command.split(' ')[1], command.split(' ')[2]  # Получаем аргументы для команды 'cp'
+                self.cp(src, dest)  # Выполняем команду 'cp'
+            else:
+                print("The command was not recognized")  # Сообщаем, если команда не распознана
