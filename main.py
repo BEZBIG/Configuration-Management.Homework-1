@@ -77,7 +77,7 @@ class EmulatorShell:
     def run(self):
         while True:
             # Формируем приглашение командной строки в формате <hostname>:<текущий путь>$
-            prompt = f'{self.hostname}:{self.current_dir}$ '  # Строка приглашения с именем компьютера и текущей директорией
+            prompt = f'{self.hostname}:{self.current_dir}> '  # Строка приглашения с именем компьютера и текущей директорией
             command = input(prompt)  # Получаем ввод пользователя
 
             if command == 'exit':
@@ -96,3 +96,7 @@ class EmulatorShell:
                 self.cp(src, dest)  # Выполняем команду 'cp'
             else:
                 print("The command was not recognized")  # Сообщаем, если команда не распознана
+
+if __name__ == "__main__":
+    emulator = EmulatorShell('config.xml')  # Передаем путь к конфигурационному файлу
+    emulator.run()  # Запускаем эмулятор
