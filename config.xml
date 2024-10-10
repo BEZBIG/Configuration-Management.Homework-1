@@ -1,0 +1,4 @@
+<config>
+    <hostname>my-computer</hostname>
+    <filesystem>test.zip</filesystem>
+</config>
