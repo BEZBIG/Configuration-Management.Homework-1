@@ -1,9 +1,8 @@
-import os
 import zipfile
+import os
 import xml.etree.ElementTree as ET
-import shutil # Модуль для операций копирования и удаления файлов и директорий
 
-#Класс для эмуляции shell
+# Класс для эмуляции shell
 class EmulatorShell:
     def __init__(self, config_file):
         # Чтение конфигурационного файла XML
@@ -16,87 +15,104 @@ class EmulatorShell:
         # Получение пути к zip-архиву виртуальной файловой системы
         self.fs_zip_path = root.find('filesystem').text
 
-        # Временная директория для файловой системы
-        self.temp_files_path = '/tmp/test_files'
+        # Загрузка виртуальной файловой системы из zip-архива
+        self.fs_structure = {}
+        self.load_fs_structure()
 
         # Текущая директория в файловой системе
-        self.current_dir = self.temp_files_path
+        self.current_dir = self.fs_structure
+        self.path = '/'
 
-        # Распаковка файловой системы
-        self.extract_files()
-
-    # Распаковка zip-архива виртуальной файловой системы во временную директорию.
-    def extract_files(self):
-        if os.path.exists(self.temp_files_path):
-            shutil.rmtree(self.temp_files_path)  # Удаляем предыдущие данные, если они существуют
-        os.makedirs(self.temp_files_path)  # Создаем временную директорию
-
+    # Загрузка файловой структуры из zip-архива
+    def load_fs_structure(self):
         with zipfile.ZipFile(self.fs_zip_path, 'r') as zip_ref:
-            zip_ref.extractall(self.temp_files_path)  # Распаковка файлов в temp_files_path
+            for file_info in zip_ref.infolist():
+                path_parts = file_info.filename.split('/')
+                current_level = self.fs_structure
+
+                # Создаем структуру директорий
+                for part in path_parts:
+                    if part:  # Игнорируем пустые элементы
+                        if part not in current_level:
+                            if file_info.is_dir():
+                                current_level[part] = {}
+                            else:
+                                current_level[part] = None  # Файл обозначаем как None
+                        current_level = current_level[part]
 
     # Вывод содержимого текущей директории
     def ls(self):
-        try:
-            for item in os.listdir(self.current_dir): # Получаем список файлов и директорий в текущей директории
-                print(item) # Выводим каждый элемент
-        except FileNotFoundError:
-            print("Error: directory not found")
+        if isinstance(self.current_dir, dict):
+            for item in self.current_dir:
+                print(item)
+        else:
+            print("Error: Current directory is invalid")
 
     # Переход в другую директорию
     def cd(self, path):
-        new_path = os.path.join(self.current_dir, path)  # Формируем полный путь для перехода
-        if os.path.isdir(new_path):  # Проверяем, является ли путь директорией
-            self.current_dir = new_path  # Обновляем текущую директорию
+        if path == '/':
+            self.current_dir = self.fs_structure
+            self.path = '/'
+        elif path == '..':
+            if self.path != '/':
+                self.path = '/'.join(self.path.split('/')[:-1]) or '/'
+                self.current_dir = self.navigate_to_path(self.path)
+        elif path in self.current_dir and isinstance(self.current_dir[path], dict):
+            self.current_dir = self.current_dir[path]
+            self.path += f'/{path}' if self.path != '/' else path
         else:
-            print(f"Error: directory {path} не does not exist")  # Выводим ошибку, если директория не найдена
+            print(f"Error: Directory {path} does not exist")
 
-
-    # Удаление файла или директории
+    # Удаление файла или директории (виртуально)
     def rm(self, path):
-        target_path = os.path.join(self.current_dir, path)  # Формируем полный путь для удаления
-        if os.path.isfile(target_path):  # Проверяем, является ли это файлом
-            os.remove(target_path)  # Удаляем файл
-        elif os.path.isdir(target_path):  # Проверяем, является ли это директорией
-            shutil.rmtree(target_path)  # Удаляем директорию и всё её содержимое
+        if path in self.current_dir:
+            del self.current_dir[path]
         else:
-            print(f"Error: file or directory {path} not found")  # Сообщаем, если файл или директория не найдены
+            print(f"Error: file or directory {path} not found")
 
     # Копирование файла или директории
     def cp(self, src, dest):
-        src_path = os.path.join(self.current_dir, src)  # Формируем путь к исходному файлу или директории
-        dest_path = os.path.join(self.current_dir, dest)  # Формируем путь к месту назначения
-        if os.path.exists(src_path):  # Проверяем, существует ли исходный файл или директория
-            if os.path.isfile(src_path):
-                shutil.copy(src_path, dest_path)  # Копируем файл
-            elif os.path.isdir(src_path):
-                shutil.copytree(src_path, dest_path)  # Рекурсивно копируем директорию
+        if src in self.current_dir:
+            self.current_dir[dest] = self.current_dir[src]
         else:
-            print(f"Ошибка: файл или директория {src} не найдены")  # Сообщаем, если исходный объект не найден
+            print(f"Error: file or directory {src} not found")
+
+    # Функция для перехода к определенной директории по пути
+    def navigate_to_path(self, path):
+        current = self.fs_structure
+        if path == '/':
+            return current
+        for part in path.strip('/').split('/'):
+            if part in current and isinstance(current[part], dict):
+                current = current[part]
+            else:
+                return None
+        return current
 
     # Основной цикл эмулятора
     def run(self):
         while True:
-            # Формируем приглашение командной строки в формате <hostname>:<текущий путь>$
-            prompt = f'{self.hostname}:{self.current_dir}> '  # Строка приглашения с именем компьютера и текущей директорией
-            command = input(prompt)  # Получаем ввод пользователя
+            # Формируем приглашение командной строки
+            prompt = f'{self.hostname}:{self.path}> '
+            command = input(prompt)
 
             if command == 'exit':
-                break  # Прерываем цикл, если команда 'exit'
+                break
             elif command.startswith('ls'):
-                self.ls()  # Выполняем команду 'ls'
+                self.ls()
             elif command.startswith('cd'):
-                path = command.split(' ')[1] if len(
-                    command.split(' ')) > 1 else '/'  # Получаем аргумент для команды 'cd'
-                self.cd(path)  # Выполняем команду 'cd'
+                path = command.split(' ')[1] if len(command.split(' ')) > 1 else '/'
+                self.cd(path)
             elif command.startswith('rm'):
-                path = command.split(' ')[1]  # Получаем аргумент для команды 'rm'
-                self.rm(path)  # Выполняем команду 'rm'
+                path = command.split(' ')[1]
+                self.rm(path)
             elif command.startswith('cp'):
-                src, dest = command.split(' ')[1], command.split(' ')[2]  # Получаем аргументы для команды 'cp'
-                self.cp(src, dest)  # Выполняем команду 'cp'
+                parts = command.split(' ')
+                src, dest = parts[1], parts[2]
+                self.cp(src, dest)
             else:
-                print("The command was not recognized")  # Сообщаем, если команда не распознана
+                print("The command was not recognized")
 
 if __name__ == "__main__":
-    emulator = EmulatorShell('config.xml')  # Передаем путь к конфигурационному файлу
-    emulator.run()  # Запускаем эмулятор
+    emulator = EmulatorShell('config.xml')
+    emulator.run()
